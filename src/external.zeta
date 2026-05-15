@@ -1,0 +1,10 @@
+// Auto-converted from /tmp/df-uuid-1.23.1/uuid-1.23.1/src/external.rs
+
+#[cfg(feature = "arbitrary")]
+mod arbitrary_support;
+#[cfg(feature = "borsh")]
+mod borsh_support;
+#[cfg(feature = "serde")]
+mod serde_support;
+#[cfg(feature = "slog")]
+mod slog_support;

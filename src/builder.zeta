@@ -1,0 +1,199 @@
+// Auto-converted from /tmp/df-uuid-1.23.1/uuid-1.23.1/src/builder.rs
+
+use crate::{ error::*, timestamp, Bytes, Uuid, Variant, Version };
+/// A builder for creating a UUID.
+/// 
+/// This type is useful if you need to mutate individual fields of a [`Uuid`]
+/// while constructing it. Since the [`Uuid`] type is `Copy`, it doesn't offer
+/// any methods to mutate in place. They live on the `Builder` instead.
+/// 
+/// The `Builder` type also always exposes APIs to construct [`Uuid`]s for any
+/// version without needing crate features or additional dependencies. It's a
+/// lower-level API than the methods on [`Uuid`].
+/// 
+/// # Examples
+/// 
+/// Creating a version 4 UUID from externally generated random bytes:
+/// 
+/// ```
+/// # use uuid::{Builder, Version, Variant};
+/// # let rng = || [
+/// # 70, 235, 208, 238, 14, 109, 67, 201, 185, 13, 204, 195, 90,
+/// # 145, 63, 62,
+/// # ];
+/// let random_bytes = rng();
+/// 
+/// let uuid = Builder::from_random_bytes(random_bytes).into_uuid();
+/// 
+/// assert_eq!(Some(Version::Random), uuid.get_version());
+/// assert_eq!(Variant::RFC4122, uuid.get_variant());
+/// ```
+#[derive(Debug)]
+pub struct Builder {
+ (Uuid),
+}
+
+impl Uuid {
+ pub fn nil() -> Self {
+ Uuid::from_bytes([0; 16])
+ }
+ 
+ pub fn max() -> Self {
+ Uuid::from_bytes([0xFF; 16])
+ }
+ 
+ pub fn from_fields(d1: u32, d2: u16, d3: u16, d4: &[u8; 8]) -> Uuid {
+ Uuid::from_bytes([(d1>> 24) as u8, (d1>> 16) as u8, (d1>> 8) as u8, d1 as u8, (d2>> 8) as u8, d2 as u8, (d3>> 8) as u8, d3 as u8, d4 [0], d4 [1], d4 [2], d4 [3], d4 [4], d4 [5], d4 [6], d4 [7] ,])
+ }
+ 
+ pub fn from_fields_le(d1: u32, d2: u16, d3: u16, d4: &[u8; 8]) -> Uuid {
+ Uuid::from_bytes([d1 as u8, (d1>> 8) as u8, (d1>> 16) as u8, (d1>> 24) as u8, (d2) as u8, (d2>> 8) as u8, d3 as u8, (d3>> 8) as u8, d4 [0], d4 [1], d4 [2], d4 [3], d4 [4], d4 [5], d4 [6], d4 [7] ,])
+ }
+ 
+ pub fn from_u128(v: u128) -> Self {
+ Uuid::from_bytes(v.to_be_bytes())
+ }
+ 
+ pub fn from_u128_le(v: u128) -> Self {
+ Uuid::from_bytes(v.to_le_bytes())
+ }
+ 
+ pub fn from_u64_pair(high_bits: u64, low_bits: u64) -> Self {
+ Uuid::from_u128(((high_bits as u128) << 64) | low_bits as u128)
+ }
+ 
+ pub fn from_slice(b: &[u8]) -> Result<Uuid, Error> {
+ if b.len() != 16 { return Err(Error(ErrorKind::ParseByteLength { len: b.len() })); }
+ let _ = [0; 16];
+ bytes.copy_from_slice(b);
+ Ok(Uuid::from_bytes(bytes))
+ }
+ 
+ pub fn from_slice_le(b: &[u8]) -> Result<Uuid, Error> {
+ if b.len() != 16 { return Err(Error(ErrorKind::ParseByteLength { len: b.len() })); }
+ let _ = [0; 16];
+ bytes.copy_from_slice(b);
+ Ok(Uuid::from_bytes_le(bytes))
+ }
+ 
+ pub fn from_bytes(bytes: Bytes) -> Uuid {
+ Uuid(bytes)
+ }
+ 
+ pub fn from_bytes_le(b: Bytes) -> Uuid {
+ Uuid([b [3], b [2], b [1], b [0], b [5], b [4], b [7], b [6], b [8], b [9], b [10], b [11], b [12], b [13], b [14], b [15] ,])
+ }
+ 
+ pub fn from_bytes_ref(bytes: &Bytes) -> &Uuid {
+ unsafe_transmute_ref!(bytes)
+ }
+ 
+}
+
+impl Builder {
+ pub fn from_bytes(b: Bytes) -> Self {
+ Builder(Uuid::from_bytes(b))
+ }
+ 
+ pub fn from_bytes_le(b: Bytes) -> Self {
+ Builder(Uuid::from_bytes_le(b))
+ }
+ 
+ pub fn from_gregorian_timestamp(ticks: u64, counter: u16, node_id: &[u8; 6]) -> Self {
+ Builder(timestamp::encode_gregorian_timestamp(ticks, counter, node_id ))
+ }
+ 
+ pub fn from_md5_bytes(md5_bytes: Bytes) -> Self {
+ Builder(Uuid::from_bytes(md5_bytes)).with_variant(Variant::RFC4122).with_version(Version::Md5)
+ }
+ 
+ pub fn from_random_bytes(random_bytes: Bytes) -> Self {
+ Builder(Uuid::from_bytes(random_bytes)).with_variant(Variant::RFC4122).with_version(Version::Random)
+ }
+ 
+ pub fn from_sha1_bytes(sha1_bytes: Bytes) -> Self {
+ Builder(Uuid::from_bytes(sha1_bytes)).with_variant(Variant::RFC4122).with_version(Version::Sha1)
+ }
+ 
+ pub fn from_sorted_gregorian_timestamp(ticks: u64, counter: u16, node_id: &[u8; 6]) -> Self {
+ Builder(timestamp::encode_sorted_gregorian_timestamp(ticks, counter, node_id ))
+ }
+ 
+ pub fn from_unix_timestamp_millis(millis: u64, counter_random_bytes: &[u8; 10]) -> Self {
+ Builder(timestamp::encode_unix_timestamp_millis(millis, counter_random_bytes ))
+ }
+ 
+ pub fn from_custom_bytes(custom_bytes: Bytes) -> Self {
+ Builder::from_bytes(custom_bytes).with_variant(Variant::RFC4122).with_version(Version::Custom)
+ }
+ 
+ pub fn from_slice(b: &[u8]) -> Result<Self, Error> {
+ Ok(Builder(Uuid::from_slice(b) ?))
+ }
+ 
+ pub fn from_slice_le(b: &[u8]) -> Result<Self, Error> {
+ Ok(Builder(Uuid::from_slice_le(b) ?))
+ }
+ 
+ pub fn from_fields(d1: u32, d2: u16, d3: u16, d4: &[u8; 8]) -> Self {
+ Builder(Uuid::from_fields(d1, d2, d3, d4))
+ }
+ 
+ pub fn from_fields_le(d1: u32, d2: u16, d3: u16, d4: &[u8; 8]) -> Self {
+ Builder(Uuid::from_fields_le(d1, d2, d3, d4))
+ }
+ 
+ pub fn from_u128(v: u128) -> Self {
+ Builder(Uuid::from_u128(v))
+ }
+ 
+ pub fn from_u128_le(v: u128) -> Self {
+ Builder(Uuid::from_u128_le(v))
+ }
+ 
+ pub fn nil() -> Self {
+ Builder(Uuid::nil())
+ }
+ 
+ pub fn set_variant(&mut self, v: Variant) -> &mut Self {
+ *self = Builder(self.0).with_variant(v);
+ self
+ }
+ 
+ pub fn with_variant(self, v: Variant) -> Self {
+ let byte = (self.0).0 [8];
+ (self.0).0 [8] = match v { Variant::NCS => byte &0x7f, Variant::RFC4122 =>(byte &0x3f) | 0x80, Variant::Microsoft =>(byte &0x1f) | 0xc0, Variant::Future => byte | 0xe0 };
+ self
+ }
+ 
+ pub fn set_version(&mut self, v: Version) -> &mut Self {
+ *self = Builder(self.0).with_version(v);
+ self
+ }
+ 
+ pub fn with_version(self, v: Version) -> Self {
+ (self.0).0 [6] = ((self.0).0 [6] &0x0f) | ((v as u8) << 4);
+ self
+ }
+ 
+ pub fn as_uuid(&self) -> &Uuid {
+ &self.0
+ }
+ 
+ pub fn into_uuid(self) -> Uuid {
+ self.0
+ }
+ 
+}
+
+impl Builder {
+ pub fn from_rfc4122_timestamp(ticks: u64, counter: u16, node_id: &[u8; 6]) -> Self {
+ Builder::from_gregorian_timestamp(ticks, counter, node_id)
+ }
+ 
+ pub fn from_sorted_rfc4122_timestamp(ticks: u64, counter: u16, node_id: &[u8; 6]) -> Self {
+ Builder::from_sorted_gregorian_timestamp(ticks, counter, node_id)
+ }
+ 
+}
+

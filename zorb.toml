@@ -1,0 +1,7 @@
+[package]
+name = "@std/uuid"
+version = "1.23.1"
+description = "UUID generation for Zeta — v4, v7, timestamp-based"
+license = "MIT"
+repository = "https://github.com/murphsicles/uuid"
+readme = "README.md"

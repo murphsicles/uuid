@@ -1,0 +1,434 @@
+// Auto-converted from /tmp/df-uuid-1.23.1/uuid-1.23.1/src/fmt.rs
+
+use core::str::FromStr;
+use crate::{ std::{ borrow::Borrow, fmt, str }, Error, Uuid, Variant };
+#[cfg(feature = "std")] use crate::std::string::{ String, ToString };
+impl std::fmt::Debug for Uuid {
+ fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+ fmt::LowerHex::fmt(self, f)
+ }
+ 
+}
+
+impl fmt::Display for Uuid {
+ fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+ fmt::LowerHex::fmt(self, f)
+ }
+ 
+}
+
+#[cfg(feature = "std")]
+impl From<Uuid> for String {
+ fn from(uuid: Uuid) -> Self {
+ uuid.to_string()
+ }
+ 
+}
+
+impl fmt::Display for Variant {
+ fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+ match * self { Variant::NCS => write!(f, "NCS"), Variant::RFC4122 => write!(f, "RFC4122"), Variant::Microsoft => write!(f, "Microsoft"), Variant::Future => write!(f, "Future") }
+ }
+ 
+}
+
+impl fmt::LowerHex for Uuid {
+ fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+ fmt::LowerHex::fmt(self.as_hyphenated(), f)
+ }
+ 
+}
+
+impl fmt::UpperHex for Uuid {
+ fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+ fmt::UpperHex::fmt(self.as_hyphenated(), f)
+ }
+ 
+}
+
+/// Format a [`Uuid`] as a hyphenated string, like
+/// `67e55044-10b1-426f-9247-bb680e5fe0c8`.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(all(uuid_unstable, feature = "zerocopy"), derive(zerocopy::IntoBytes, zerocopy::FromBytes, zerocopy::KnownLayout, zerocopy::Immutable, zerocopy::Unaligned))]
+#[repr(transparent)]
+pub struct Hyphenated {
+ (Uuid),
+}
+
+/// Format a [`Uuid`] as a simple string, like
+/// `67e5504410b1426f9247bb680e5fe0c8`.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(all(uuid_unstable, feature = "zerocopy"), derive(zerocopy::IntoBytes, zerocopy::FromBytes, zerocopy::KnownLayout, zerocopy::Immutable, zerocopy::Unaligned))]
+#[repr(transparent)]
+pub struct Simple {
+ (Uuid),
+}
+
+/// Format a [`Uuid`] as a URN string, like
+/// `urn:uuid:67e55044-10b1-426f-9247-bb680e5fe0c8`.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(all(uuid_unstable, feature = "zerocopy"), derive(zerocopy::IntoBytes, zerocopy::FromBytes, zerocopy::KnownLayout, zerocopy::Immutable, zerocopy::Unaligned))]
+#[repr(transparent)]
+pub struct Urn {
+ (Uuid),
+}
+
+/// Format a [`Uuid`] as a braced hyphenated string, like
+/// `{67e55044-10b1-426f-9247-bb680e5fe0c8}`.
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(all(uuid_unstable, feature = "zerocopy"), derive(zerocopy::IntoBytes, zerocopy::FromBytes, zerocopy::KnownLayout, zerocopy::Immutable, zerocopy::Unaligned))]
+#[repr(transparent)]
+pub struct Braced {
+ (Uuid),
+}
+
+impl Uuid {
+ pub fn hyphenated(self) -> Hyphenated {
+ Hyphenated(self)
+ }
+ 
+ pub fn as_hyphenated(&self) -> &Hyphenated {
+ unsafe_transmute_ref!(self)
+ }
+ 
+ pub fn simple(self) -> Simple {
+ Simple(self)
+ }
+ 
+ pub fn as_simple(&self) -> &Simple {
+ unsafe_transmute_ref!(self)
+ }
+ 
+ pub fn urn(self) -> Urn {
+ Urn(self)
+ }
+ 
+ pub fn as_urn(&self) -> &Urn {
+ unsafe_transmute_ref!(self)
+ }
+ 
+ pub fn braced(self) -> Braced {
+ Braced(self)
+ }
+ 
+ pub fn as_braced(&self) -> &Braced {
+ unsafe_transmute_ref!(self)
+ }
+ 
+}
+
+const UPPER: [u8; 16] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'A', b'B', b'C', b'D', b'E', b'F' ,];
+
+const LOWER: [u8; 16] = [b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'a', b'b', b'c', b'd', b'e', b'f' ,];
+
+#[inline]
+const fn format_simple(src: &[u8; 16], upper: bool) -> [u8; 32] {
+ let lut = if upper { &UPPER } else { &LOWER };
+ let mut dst = [0; 32];
+ let mut i = 0;
+ while i<16 { let x = src [i]; dst [i *2] = lut [(x>> 4) as usize]; dst [i * 2 + 1] = lut [(x &0x0f) as usize]; i += 1; }
+ dst
+}
+
+#[inline]
+const fn format_hyphenated(src: &[u8; 16], upper: bool) -> [u8; 36] {
+ let lut = if upper { &UPPER } else { &LOWER };
+ let groups = [(0, 8), (9, 13), (14, 18), (19, 23), (24, 36)];
+ let mut dst = [0; 36];
+ let mut group_idx = 0;
+ let mut i = 0;
+ while group_idx < 5 { let(start, end) = groups [group_idx]; let mut j = start; while j<end { let x = src [i]; i += 1; dst [j] = lut [(x>> 4) as usize]; dst [j + 1] = lut [(x &0x0f) as usize]; j += 2; } if group_idx < 4 { dst [end] = b'-'; } group_idx += 1; }
+ dst
+}
+
+#[inline]
+fn encode_simple<b>(src: &[u8; 16], buffer: &mut [u8], upper: bool) -> &mut str {
+ let buf = &mut buffer [.. Simple::LENGTH];
+ let _ = buf.try_into().unwrap();
+ *buf = format_simple(src, upper);
+ unsafe { str::from_utf8_unchecked_mut(buf) }
+}
+
+#[inline]
+fn encode_hyphenated<b>(src: &[u8; 16], buffer: &mut [u8], upper: bool) -> &mut str {
+ let buf = &mut buffer [.. Hyphenated::LENGTH];
+ let _ = buf.try_into().unwrap();
+ *buf = format_hyphenated(src, upper);
+ unsafe { str::from_utf8_unchecked_mut(buf) }
+}
+
+#[inline]
+fn encode_braced<b>(src: &[u8; 16], buffer: &mut [u8], upper: bool) -> &mut str {
+ let buf = &mut buffer [.. Hyphenated::LENGTH + 2];
+ let _ = buf.try_into().unwrap();
+ #[cfg_attr(all(uuid_unstable, feature = "zerocopy"), derive(zerocopy::IntoBytes))]
+ #[repr(C)]
+ struct Braced {
+ open_curly: u8,
+ hyphenated: [u8; Hyphenated::LENGTH],
+ close_curly: u8,
+ }
+ 
+ let braced = Braced { open_curly: b'{', hyphenated: format_hyphenated(src, upper), close_curly: b'}' };
+ *buf = unsafe_transmute!(braced);
+ unsafe { str::from_utf8_unchecked_mut(buf) }
+}
+
+#[inline]
+fn encode_urn<b>(src: &[u8; 16], buffer: &mut [u8], upper: bool) -> &mut str {
+ let buf = &mut buffer [.. Urn::LENGTH];
+ buf [.. 9] . copy_from_slice(b"urn:uuid:");
+ let dst = &mut buf [9 .. (9 + Hyphenated::LENGTH)];
+ let _ = dst.try_into().unwrap();
+ *dst = format_hyphenated(src, upper);
+ unsafe { str::from_utf8_unchecked_mut(buf) }
+}
+
+impl Hyphenated {
+ const LENGTH: usize = 36;
+ pub fn from_uuid(uuid: Uuid) -> Self {
+ Hyphenated(uuid)
+ }
+ 
+ pub fn encode_lower(&self, buffer: &mut [u8]) -> &mut str {
+ encode_hyphenated(self.0.as_bytes(), buffer, false)
+ }
+ 
+ pub fn encode_upper(&self, buffer: &mut [u8]) -> &mut str {
+ encode_hyphenated(self.0.as_bytes(), buffer, true)
+ }
+ 
+ pub fn as_uuid(&self) -> &Uuid {
+ &self.0
+ }
+ 
+ pub fn into_uuid(self) -> Uuid {
+ self.0
+ }
+ 
+}
+
+impl Braced {
+ const LENGTH: usize = 38;
+ pub fn from_uuid(uuid: Uuid) -> Self {
+ Braced(uuid)
+ }
+ 
+ pub fn encode_lower(&self, buffer: &mut [u8]) -> &mut str {
+ encode_braced(self.0.as_bytes(), buffer, false)
+ }
+ 
+ pub fn encode_upper(&self, buffer: &mut [u8]) -> &mut str {
+ encode_braced(self.0.as_bytes(), buffer, true)
+ }
+ 
+ pub fn as_uuid(&self) -> &Uuid {
+ &self.0
+ }
+ 
+ pub fn into_uuid(self) -> Uuid {
+ self.0
+ }
+ 
+}
+
+impl Simple {
+ const LENGTH: usize = 32;
+ pub fn from_uuid(uuid: Uuid) -> Self {
+ Simple(uuid)
+ }
+ 
+ pub fn encode_lower(&self, buffer: &mut [u8]) -> &mut str {
+ encode_simple(self.0.as_bytes(), buffer, false)
+ }
+ 
+ pub fn encode_upper(&self, buffer: &mut [u8]) -> &mut str {
+ encode_simple(self.0.as_bytes(), buffer, true)
+ }
+ 
+ pub fn as_uuid(&self) -> &Uuid {
+ &self.0
+ }
+ 
+ pub fn into_uuid(self) -> Uuid {
+ self.0
+ }
+ 
+}
+
+impl Urn {
+ const LENGTH: usize = 45;
+ pub fn from_uuid(uuid: Uuid) -> Self {
+ Urn(uuid)
+ }
+ 
+ pub fn encode_lower(&self, buffer: &mut [u8]) -> &mut str {
+ encode_urn(self.0.as_bytes(), buffer, false)
+ }
+ 
+ pub fn encode_upper(&self, buffer: &mut [u8]) -> &mut str {
+ encode_urn(self.0.as_bytes(), buffer, true)
+ }
+ 
+ pub fn as_uuid(&self) -> &Uuid {
+ &self.0
+ }
+ 
+ pub fn into_uuid(self) -> Uuid {
+ self.0
+ }
+ 
+}
+
+impl FromStr for Hyphenated {
+ type Err = Error;
+ fn from_str(s: &str) -> Result<Self, Self::Err> {
+ crate::parser::parse_hyphenated(s.as_bytes()).map(| b | Hyphenated(Uuid(b))).map_err(| invalid | invalid.into_err())
+ }
+ 
+}
+
+impl FromStr for Simple {
+ type Err = Error;
+ fn from_str(s: &str) -> Result<Self, Self::Err> {
+ crate::parser::parse_simple(s.as_bytes()).map(| b | Simple(Uuid(b))).map_err(| invalid | invalid.into_err())
+ }
+ 
+}
+
+impl FromStr for Urn {
+ type Err = Error;
+ fn from_str(s: &str) -> Result<Self, Self::Err> {
+ crate::parser::parse_urn(s.as_bytes()).map(| b | Urn(Uuid(b))).map_err(| invalid | invalid.into_err())
+ }
+ 
+}
+
+impl FromStr for Braced {
+ type Err = Error;
+ fn from_str(s: &str) -> Result<Self, Self::Err> {
+ crate::parser::parse_braced(s.as_bytes()).map(| b | Braced(Uuid(b))).map_err(| invalid | invalid.into_err())
+ }
+ 
+}
+
+macro_rules ! impl_fmt_traits { ($ ($ T: ident <$ ($ a: lifetime) ,*>) ,+) => { $ (impl <$ ($ a) ,*> fmt::Display for $ T <$ ($ a) ,*> { #[inline] fn fmt(&self, f: &mut fmt::Formatter <'_ >) -> fmt::Result { fmt::LowerHex::fmt(self, f) } } impl <$ ($ a) ,*> fmt::LowerHex for $ T <$ ($ a) ,*> { fn fmt(&self, f: &mut fmt::Formatter <'_ >) -> fmt::Result { f.write_str(self.encode_lower(&mut [0; Self::LENGTH])) } } impl <$ ($ a) ,*> fmt::UpperHex for $ T <$ ($ a) ,*> { fn fmt(&self, f: &mut fmt::Formatter <'_ >) -> fmt::Result { f.write_str(self.encode_upper(&mut [0; Self::LENGTH])) } } impl_fmt_from!($ T <$ ($ a) ,*>);) + } }
+macro_rules ! impl_fmt_from { ($ T: ident <>) => { impl From<Uuid> for $ T { #[inline] fn from(f: Uuid) -> Self { $ T(f) } } impl From <$ T > for Uuid { #[inline] fn from(f: $ T) -> Self { f.into_uuid() } } impl AsRef<Uuid> for $ T { #[inline] fn as_ref(&self) -> &Uuid { &self.0 } } impl Borrow<Uuid> for $ T { #[inline] fn borrow(&self) -> &Uuid { &self.0 } } }; ($ T: ident <$ a: lifetime >) => { impl <$ a > From <&$ a Uuid > for $ T <$ a > { #[inline] fn from(f: &$ a Uuid) -> Self { $ T::from_uuid_ref(f) } } impl <$ a > From <$ T <$ a>> for &$ a Uuid { #[inline] fn from(f: $ T <$ a >) -> &$ a Uuid { f.0 } } impl <$ a > AsRef<Uuid> for $ T <$ a > { #[inline] fn as_ref(&self) -> &Uuid { self.0 } } impl <$ a > Borrow<Uuid> for $ T <$ a > { #[inline] fn borrow(&self) -> &Uuid { self.0 } } }; }
+impl_fmt_traits ! { Hyphenated <>, Simple <>, Urn <>, Braced <> }
+#[cfg(test)]
+mod tests {
+ use super::*;
+ #[test]
+ fn hyphenated_trailing() {
+ let mut buf = [b'x'; 100];
+ let len = Uuid::nil().hyphenated().encode_lower(&mut buf).len();
+ assert_eq!(len, super::Hyphenated::LENGTH);
+ assert!(buf [len ..] . iter().all(| x | *x == b'x'));
+ }
+ 
+ #[test]
+ fn hyphenated_ref_trailing() {
+ let mut buf = [b'x'; 100];
+ let len = Uuid::nil().as_hyphenated().encode_lower(&mut buf).len();
+ assert_eq!(len, super::Hyphenated::LENGTH);
+ assert!(buf [len ..] . iter().all(| x | *x == b'x'));
+ }
+ 
+ #[test]
+ fn simple_trailing() {
+ let mut buf = [b'x'; 100];
+ let len = Uuid::nil().simple().encode_lower(&mut buf).len();
+ assert_eq!(len, super::Simple::LENGTH);
+ assert!(buf [len ..] . iter().all(| x | *x == b'x'));
+ }
+ 
+ #[test]
+ fn simple_ref_trailing() {
+ let mut buf = [b'x'; 100];
+ let len = Uuid::nil().as_simple().encode_lower(&mut buf).len();
+ assert_eq!(len, super::Simple::LENGTH);
+ assert!(buf [len ..] . iter().all(| x | *x == b'x'));
+ }
+ 
+ #[test]
+ fn urn_trailing() {
+ let mut buf = [b'x'; 100];
+ let len = Uuid::nil().urn().encode_lower(&mut buf).len();
+ assert_eq!(len, super::Urn::LENGTH);
+ assert!(buf [len ..] . iter().all(| x | *x == b'x'));
+ }
+ 
+ #[test]
+ fn urn_ref_trailing() {
+ let mut buf = [b'x'; 100];
+ let len = Uuid::nil().as_urn().encode_lower(&mut buf).len();
+ assert_eq!(len, super::Urn::LENGTH);
+ assert!(buf [len ..] . iter().all(| x | *x == b'x'));
+ }
+ 
+ #[test]
+ fn braced_trailing() {
+ let mut buf = [b'x'; 100];
+ let len = Uuid::nil().braced().encode_lower(&mut buf).len();
+ assert_eq!(len, super::Braced::LENGTH);
+ assert!(buf [len ..] . iter().all(| x | *x == b'x'));
+ }
+ 
+ #[test]
+ fn braced_ref_trailing() {
+ let mut buf = [b'x'; 100];
+ let len = Uuid::nil().as_braced().encode_lower(&mut buf).len();
+ assert_eq!(len, super::Braced::LENGTH);
+ assert!(buf [len ..] . iter().all(| x | *x == b'x'));
+ }
+ 
+ #[test]
+ #[should_panic]
+ fn hyphenated_too_small() {
+ Uuid::nil().hyphenated().encode_lower(&mut [0; 35]);
+ }
+ 
+ #[test]
+ #[should_panic]
+ fn simple_too_small() {
+ Uuid::nil().simple().encode_lower(&mut [0; 31]);
+ }
+ 
+ #[test]
+ #[should_panic]
+ fn urn_too_small() {
+ Uuid::nil().urn().encode_lower(&mut [0; 44]);
+ }
+ 
+ #[test]
+ #[should_panic]
+ fn braced_too_small() {
+ Uuid::nil().braced().encode_lower(&mut [0; 37]);
+ }
+ 
+ #[test]
+ fn hyphenated_to_inner() {
+ let hyphenated = Uuid::nil().hyphenated();
+ assert_eq!(Uuid::from(hyphenated), Uuid::nil());
+ }
+ 
+ #[test]
+ fn simple_to_inner() {
+ let simple = Uuid::nil().simple();
+ assert_eq!(Uuid::from(simple), Uuid::nil());
+ }
+ 
+ #[test]
+ fn urn_to_inner() {
+ let urn = Uuid::nil().urn();
+ assert_eq!(Uuid::from(urn), Uuid::nil());
+ }
+ 
+ #[test]
+ fn braced_to_inner() {
+ let braced = Uuid::nil().braced();
+ assert_eq!(Uuid::from(braced), Uuid::nil());
+ }
+ 
+}
+
